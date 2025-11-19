@@ -1,10 +1,13 @@
 package com.testingAPI.restassured;
 
 import com.testingAPI.core.TestBase;
+import com.testingAPI.dto.AllContactsDTO;
 import com.testingAPI.dto.ContactDTO;
 import com.testingAPI.dto.ErrorDTO;
 import com.testingAPI.dto.UptdateContactDTO;
 import io.restassured.http.ContentType;
+import org.testng.Assert;
+import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -14,7 +17,9 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 
 public class PutContactRATests extends TestBase {
-    String id;
+    static String id;
+    static String first_desc;
+    static String second_desc;
 
     @BeforeMethod
     public void precondition(){
@@ -26,7 +31,7 @@ public class PutContactRATests extends TestBase {
                 .phone("1234567890")
                 .address("Tel Aviv")
                 .description("QA Python MID").build();
-
+        first_desc = contact.getDescription();
         String message = given().
                 header(AUTHORIZATION, TOKEN)
                 .body(contact)
@@ -42,7 +47,7 @@ public class PutContactRATests extends TestBase {
     }
     @Test
     public void putContactSuccessChangeDescTest(){
-        UptdateContactDTO contactChanged = UptdateContactDTO.builder()
+         UptdateContactDTO contactChanged = UptdateContactDTO.builder()
                 .id(id)
                 .name("Sergey")
                 .lastName("Perlov")
@@ -50,7 +55,7 @@ public class PutContactRATests extends TestBase {
                 .phone("1234567890")
                 .address("Tel Aviv")
                 .description("Programmer C#").build();
-
+        second_desc = contactChanged.getDescription();
         given()
                 .header(AUTHORIZATION, TOKEN)
                 .contentType(ContentType.JSON)
@@ -68,5 +73,21 @@ public class PutContactRATests extends TestBase {
             //    .extract().body().as(ErrorDTO.class);
                 //.extract().body().path("message");
 
+    }
+    @AfterMethod
+    public static void checkTheChanges(){
+        AllContactsDTO allContactsDTO = given().header(AUTHORIZATION, TOKEN)
+                .when()
+                .get("/contacts")
+                .then()
+                .extract().body().as(AllContactsDTO.class);
+
+        for(ContactDTO contact: allContactsDTO.getContacts()){
+            if (contact.getId().equals(id)){
+            System.out.println("In contactId " + contact.getId()
+                    + " Was changed description from " + first_desc +" to " + contact.getDescription());
+                Assert.assertEquals(contact.getDescription(), second_desc);
+            }
+        }
     }
 }
